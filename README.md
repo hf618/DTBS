@@ -76,8 +76,6 @@ component ablations, ...) are coming soon
 ## Checkpoints
 
 Below, we provide checkpoints of DAFormer for different benchmarks.
-As the results in the paper are provided as the mean over three random
-seeds, we provide the checkpoint with the median validation performance here.
 
 * [DTBS for Cityscapes→ACDC](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 * [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
