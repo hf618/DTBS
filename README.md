@@ -19,3 +19,10 @@ extract them to `data/acdc`.
 and Dark_Zurich_val_anon.zip from
 [here](https://www.trace.ethz.ch/publications/2019/GCMA_UIoU/) and extract it
 to `data/dark_zurich`.
+
+**Data Preprocessing:** Finally, please run the following scripts to convert the label IDs to the
+train IDs and to generate the class index for RCS:
+
+```shell
+python tools/convert_datasets/cityscapes.py data/cityscapes --nproc 8
+```
