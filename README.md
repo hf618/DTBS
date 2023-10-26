@@ -77,7 +77,7 @@ component ablations, ...) are coming soon
 
 Below, we provide checkpoints of DTBS for different benchmarks.
 
-* [DTBS for Cityscapes→ACDC](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
+* [DTBS for Cityscapes→ACDC night](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 * [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 
 
