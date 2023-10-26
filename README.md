@@ -95,7 +95,7 @@ When judging the predictions, please keep in mind that DTBS had no access to rea
 Below, we provide checkpoints of DTBS for different benchmarks.
 
 * [DTBS for Cityscapes→ACDC night](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
-* [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
+* [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1EBkKKYEtCr9zaJhoxT9ffN9cD-pvsbnS/view?usp=sharing)
 
 Place them in the following positions respectively:`DTBS/work_dirs/acdc/` and  `DTBS/work_dirs/dark_zurich/`
 
