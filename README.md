@@ -80,6 +80,14 @@ For the test part of the various benchemarks, we follow the requirements of the 
 * Image dimensions of result files must be equal to input RGB image dimensions, i.e., 1920 x 1080.
 * Labels must be encoded in trainIDs format, e.g., road should correspond to ID 0.
 
+```shell
+python -m demo.image_test demo/demo.png work_dirs/acdc/acdc_pretrained.json work_dirs/acdc/cs2acdc_latest.pth
+```
+
+```shell
+python -m demo.image_test demo/demo.png work_dirs/dark_zurich/dark_zurich_pretrained.json work_dirs/dark_zurich/cs2dark_latest.pth
+```
+
 When judging the predictions, please keep in mind that DTBS had no access to real-world labels during the training.
 
 ## Checkpoints
