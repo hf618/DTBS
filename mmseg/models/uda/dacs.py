@@ -20,7 +20,7 @@ from mmseg.models.utils.visualization import subplotimg
 from mmseg.utils.utils import downscale_label_ratio
 
 
-def _params_equal(ema_model1,ema_model2, model): #一个ema_model改为两个
+def _params_equal(ema_model1,ema_model2, model): #ema_model两个
     for ema_param, param in zip(ema_model1.named_parameters(),
                                 model.named_parameters()):
         if not torch.equal(ema_param[1].data, param[1].data):
