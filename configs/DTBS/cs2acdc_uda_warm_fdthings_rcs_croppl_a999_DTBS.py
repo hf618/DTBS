@@ -44,7 +44,7 @@ runner = dict(type='IterBasedRunner', max_iters=40000)
 checkpoint_config = dict(by_epoch=False, interval=40000, max_keep_ckpts=1)
 evaluation = dict(interval=4000, metric='mIoU')
 # Meta Information for Result Analysis
-name = 'cs2acdc_uda_warm_fdthings_rcs_croppl_a999_daformer_mitb5_s0'
+name = 'cs2acdc_uda_warm_fdthings_rcs_croppl_a999_DTBS'
 exp = 'basic'
 name_dataset = 'cityscapes2acdc'
 name_architecture = 'daformer_sepaspp_mitb5'
