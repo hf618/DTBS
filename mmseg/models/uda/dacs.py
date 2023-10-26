@@ -1,15 +1,4 @@
-# ---------------------------------------------------------------
-# Copyright (c) 2021-2022 ETH Zurich, Lukas Hoyer. All rights reserved.
-# Licensed under the Apache License, Version 2.0
-# ---------------------------------------------------------------
 
-# The ema model update and the domain-mixing are based on:
-# https://github.com/vikolss/DACS
-# Copyright (c) 2020 vikolss. Licensed under the MIT License.
-# A copy of the license is available at resources/license_dacs
-# 改编 1 ema => 2 ema
-# 选择哪种EMA更新方式 def _update_ema(self, iter):student => teacher1 and teacher1
-# 纯净版之交替学习
 import math
 import os
 import random
@@ -151,14 +140,14 @@ class DACS(UDADecorator):
         mcp1 = list(self.get_ema_model1().parameters())
         
         
-        mcp2 = list(self.get_ema_model2().parameters())#增加ema2的参数list
+        mcp2 = list(self.get_ema_model2().parameters())
         for i in range(0, len(mp)):
             if not mcp1[i].data.shape:  # scalar tensor
                 mcp1[i].data = mp[i].data.clone()
             else:
                 mcp1[i].data[:] = mp[i].data[:].clone()
                 
-            # 增加一个ema2的
+
             if not mcp2[i].data.shape:  # scalar tensor
                 mcp2[i].data = mp[i].data.clone()
             else:
@@ -167,7 +156,7 @@ class DACS(UDADecorator):
                 
             
 
-    def _update_ema(self, iter): #这里改动较大 student => teacher1 and teacher1
+    def _update_ema(self, iter): 
         alpha_teacher = min(1 - 1 / (iter + 1), self.alpha)
         for ema_param, param in zip(self.get_ema_model1().parameters(),
                                     self.get_model().parameters()):
@@ -180,7 +169,7 @@ class DACS(UDADecorator):
                     alpha_teacher * ema_param[:].data[:] + \
                     (1 - alpha_teacher) * param[:].data[:]
                 
-        # 增加对ema2的操作
+        # 对ema2的操作
         for ema_param, param in zip(self.get_ema_model2().parameters(),
                                     self.get_model().parameters()):
             if not param.data.shape:  # scalar tensor
@@ -353,20 +342,20 @@ class DACS(UDADecorator):
                 mmcv.print_log(f'Fdist Grad.: {grad_mag}', 'mmseg')
 
         # Generate pseudo-label
-        # 这里要魔改
+
         for m in self.get_ema_model1().modules():
             if isinstance(m, _DropoutNd):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
-                # 增加ema2的版本
+                # ema2
         for m in self.get_ema_model2().modules():
             if isinstance(m, _DropoutNd):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
                 
-        # 这里复制新版本ema2
+        # ema2
         ema_logits1 = self.get_ema_model1().encode_decode(
             target_day_img, target_day_img_metas)
         ema_logits2 = self.get_ema_model2().encode_decode(
@@ -379,7 +368,7 @@ class DACS(UDADecorator):
         pseudo_weight1 = torch.sum(ps_large_p1).item() / ps_size1
         pseudo_weight1 = pseudo_weight1 * torch.ones(
             pseudo_prob1.shape, device=dev)
-        # 这里复制新版本ema2
+        # ema2
         ema_softmax2 = torch.softmax(ema_logits2.detach(), dim=1)
         pseudo_prob2, pseudo_label2 = torch.max(ema_softmax2, dim=1)
         ps_large_p2 = pseudo_prob2.ge(self.pseudo_threshold).long() == 1
@@ -394,7 +383,7 @@ class DACS(UDADecorator):
             # rectification artifacts. This can lead to a pseudo-label
             # drift from sky towards building or traffic light.
             pseudo_weight1[:, :self.psweight_ignore_top, :] = 0
-            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0#复制版本
+            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0
             
         if self.psweight_ignore_bottom > 0:
             
@@ -402,7 +391,7 @@ class DACS(UDADecorator):
             pseudo_weight1[:, -self.psweight_ignore_bottom:, :] = 0
             pseudo_weight2[:, -self.psweight_ignore_bottom:, :] = 0
             
-        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev) #复制版本   
+        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev)  
         gt_pixel_weight2 = torch.ones((pseudo_weight2.shape), device=dev)
 
         # Apply DACS mixing
@@ -475,13 +464,7 @@ class DACS(UDADecorator):
         
         self._update_ema2(self.local_iter)
 
-        '''
-        # Apply cut mixing
-        alpha = 3
-        mixed_img_cut1, mixed_lbl_cut1 = [None] * batch_size, [None] * batch_size
-        mixed_img_cut2, mixed_lbl_cut2 = [None] * batch_size, [None] * batch_size
-        #mix_masks = get_class_masks(gt_semantic_seg)
-        #ema 1
+      
 
         
         #print('pseudo_label1[0]',pseudo_label1[0].shape)
@@ -655,7 +638,7 @@ class DACS(UDADecorator):
                                  f'{(self.local_iter + 1):06d}_{j}_day.png'))
                 plt.close()
                 
-                #开始copy-------------------------------------------------
+       
                 fig, axs = plt.subplots(
                     rows,
                     cols,
@@ -713,13 +696,7 @@ class DACS(UDADecorator):
                 plt.close()
                 
                 
-                
-                
-                
-                
-                
-                
-                
+
                 
         self.local_iter += 1
 
