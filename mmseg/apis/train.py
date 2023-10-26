@@ -1,7 +1,7 @@
 # Obtained from: https://github.com/open-mmlab/mmsegmentation/tree/v0.16.0
 # Modifications:
 # - Add ddp_wrapper from mmgen
-# 改编
+
 import random
 import warnings
 
