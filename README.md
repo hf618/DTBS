@@ -75,7 +75,7 @@ component ablations, ...) are coming soon
 
 ## Checkpoints
 
-Below, we provide checkpoints of DAFormer for different benchmarks.
+Below, we provide checkpoints of DTBS for different benchmarks.
 
 * [DTBS for Cityscapes→ACDC](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 * [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
