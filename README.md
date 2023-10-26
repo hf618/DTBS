@@ -26,3 +26,15 @@ train IDs and to generate the class index for RCS:
 ```shell
 python tools/convert_datasets/cityscapes.py data/cityscapes --nproc 8
 ```
+
+
+## Training
+
+A training job can be launched using:
+
+```shell
+python run_experiments.py --config configs/DTBS/gta2cs_uda_warm_fdthings_rcs_croppl_a999_DTBS.py
+```
+
+More experiments in our paper (e.g. network architecture comparison,
+component ablations, ...) are coming soon
