@@ -68,11 +68,19 @@ component ablations, ...) are coming soon
 Already as this point, the provided DTBS pretrained model in the checkpoint below which can be applied to a demo image:
 
 ```shell
-python -m demo.image_demo demo/demo.png work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/211108_1622_gta2cs_daformer_s0_7f24c.json work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/latest.pth
+python -m demo.image_demo demo/demo.png work_dirs/acdc/acdc_pretrained.json work_dirs/acdc/cs2acdc_latest.pth
 ```
 
-When judging the predictions, please keep in mind that DTBS had no access
-to real-world labels during the training.
+```shell
+python -m demo.image_demo demo/demo.png work_dirs/dark_zurich/dark_zurich_pretrained.json work_dirs/dark_zurich/cs2dark_latest.pth
+```
+
+For the test part of the various benchemarks, we follow the requirements of the [ACDC](https://acdc.vision.ee.ethz.ch/submit) as follows to inference about the test dataset
+
+* Image dimensions of result files must be equal to input RGB image dimensions, i.e., 1920 x 1080.
+* Labels must be encoded in trainIDs format, e.g., road should correspond to ID 0.
+
+When judging the predictions, please keep in mind that DTBS had no access to real-world labels during the training.
 
 ## Checkpoints
 
@@ -81,6 +89,7 @@ Below, we provide checkpoints of DTBS for different benchmarks.
 * [DTBS for Cityscapes→ACDC night](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 * [DTBS for Cityscapes→DarkZurich](https://drive.google.com/file/d/1pi9sZmpUs8Nz5-nVu0Mt-itZkSj2xfa7/view?usp=sharing)
 
+Place them in the following positions respectively:`DTBS/work_dirs/acdc/` and  `DTBS/work_dirs/dark_zurich/`
 
 ## Results on CS->acdc night
 
