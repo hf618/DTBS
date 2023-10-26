@@ -1,5 +1,5 @@
 ## DTBS: Dual-Teacher Bi-directional Self-training for Domain Adaptation in Nighttime Semantic Segmentation
-**by [Fanding Huang], [Zihao Yao], and [Wenhui Zhou]
+** by [Fanding Huang], [Zihao Yao], and [Wenhui Zhou]
 
 :bell: **News:**
 
