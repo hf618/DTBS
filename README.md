@@ -3,7 +3,7 @@
 
 :bell: **News:**
 
-* [2023-07-15] We are happy to announce that DAFormer was accepted at **ECAI23**.
+* [2023-07-15] We are happy to announce that our paper was accepted at **ECAI23**.
 
 ## Architectute
 
