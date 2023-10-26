@@ -1,12 +1,8 @@
-# Obtained from: https://github.com/open-mmlab/mmsegmentation/tree/v0.16.0
-# Modifications:
-# - Config and checkpoint update
-# - Saving instead of showing prediction
-# 丁哥改编for循环版本
-
+import glob 
 import os
 from argparse import ArgumentParser
-
+import numpy as np
+from PIL import Image
 import mmcv
 from tools.test import update_legacy_cfg
 
@@ -46,13 +42,39 @@ def main():
     directory = args.imgs
     # iterate over files in
     # that directory
-    for filename in os.listdir(directory):
-        f = os.path.join(directory, filename)
-        # checking if it is a file
-        if os.path.isfile(f):
-            print(f)
-        result = inference_segmentor(model, f)
     
+    save_path = 'demo/save/'
+    for city in os.listdir(directory):
+        f_origin = os.path.join(directory, city)
+        f_save = os.path.join(save_path,city)
+        print(f_save)
+   
+        
+        if not os.path.exists(f_save): #不存在就建立dic
+            os.mkdir(f_save)
+          
+        for image in os.listdir(f_origin):
+            if not image.endswith('png'):
+                continue
+
+            f = os.path.join(f_origin, image)
+            
+            # checking if it is a file
+            if os.path.isfile(f):
+                print(f)
+            result = inference_segmentor(model, f)
+
+
+            file, extension = os.path.splitext(image)
+            file = file.replace('_rgb_anon', '*')
+            pred_file = f'{file}{extension}'
+            s = os.path.join(f_save, pred_file)
+            #print(pred_file)
+            re = result[0].astype(np.uint8)
+            im = Image.fromarray(re)
+            im.save(s)
+            print('Save prediction to', s)
+        '''
         # show the results
         file, extension = os.path.splitext(f)
         #pred_file = f'{file}_4pred{extension}'
@@ -66,10 +88,6 @@ def main():
             show=False,
             opacity=args.opacity)
         print('Save prediction to', pred_file)
-    
-    
-  
-
-
+        '''
 if __name__ == '__main__':
     main()
