@@ -7,7 +7,7 @@
 
 ## Architectute
 
-![UDA over time](resources/architecture.png)
+![DTBS Architecture](resources/architecture.png)
 
 
 ## Environment
@@ -63,4 +63,6 @@ python run_experiments.py --config configs/DTBS/gta2cs_uda_warm_fdthings_rcs_cro
 More experiments in our paper (e.g. network architecture comparison,
 component ablations, ...) are coming soon
 
+## Qualitative Results
 
+![Comparasion](resources/comparison.png)
