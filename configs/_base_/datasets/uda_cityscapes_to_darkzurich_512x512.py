@@ -1,8 +1,3 @@
-# ---------------------------------------------------------------
-# Copyright (c) 2021-2022 ETH Zurich, Lukas Hoyer. All rights reserved.
-# Licensed under the Apache License, Version 2.0
-# ---------------------------------------------------------------
-
 # dataset settings
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -58,11 +53,17 @@ data = dict(
             img_dir='leftImg8bit/train',
             ann_dir='gtFine/train',
             pipeline=cityscapes_train_pipeline),
-        target=dict(
+        target_night=dict(
             type='DarkZurichDataset',
             data_root='data/dark_zurich/',
             img_dir='rgb_anon/train/night/',
             ann_dir='gt/train/night/',
+            pipeline=dark_zurich_train_pipeline),
+        target_day=dict(
+            type='DarkZurichDataset',
+            data_root='data/dark_zurich/',
+            img_dir='rgb_anon/train/twilight/',
+            ann_dir='gt/train/twilight/',
             pipeline=dark_zurich_train_pipeline)),
     val=dict(
         type='DarkZurichDataset',
