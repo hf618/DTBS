@@ -51,6 +51,16 @@ train IDs and to generate the class index for RCS:
 python tools/convert_datasets/cityscapes.py data/cityscapes --nproc 8
 ```
 
+## Demo
+
+Already as this point, the provided DTBS model can be applied to a demo image:
+
+```shell
+python -m demo.image_demo demo/demo.png work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/211108_1622_gta2cs_daformer_s0_7f24c.json work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/latest.pth
+```
+
+When judging the predictions, please keep in mind that DTBS had no access
+to real-world labels during the training.
 
 ## Training
 
@@ -63,6 +73,52 @@ python run_experiments.py --config configs/DTBS/gta2cs_uda_warm_fdthings_rcs_cro
 More experiments in our paper (e.g. network architecture comparison,
 component ablations, ...) are coming soon
 
-## Qualitative Results
+## Test
+
+## Testing & Predictions
+
+The provided DAFormer checkpoint trained on GTA→Cityscapes
+(already downloaded by `tools/download_checkpoints.sh`) can be tested on the
+Cityscapes validation set using:
+
+```shell
+sh test.sh work_dirs/211108_1622_gta2cs_daformer_s0_7f24c
+```
+
+The predictions are saved for inspection to
+`work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/preds`
+and the mIoU of the model is printed to the console. The provided checkpoint
+should achieve 68.85 mIoU. Refer to the end of
+`work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/20211108_164105.log` for
+more information such as the class-wise IoU.
+
+Similarly, also other models can be tested after the training has finished:
+
+```shell
+sh test.sh path/to/checkpoint_directory
+```
+
+When evaluating a model trained on Synthia→Cityscapes, please note that the
+evaluation script calculates the mIoU for all 19 Cityscapes classes. However,
+Synthia contains only labels for 16 of these classes. Therefore, it is a common
+practice in UDA to report the mIoU for Synthia→Cityscapes only on these 16
+classes. As the Iou for the 3 missing classes is 0, you can do the conversion
+mIoU16 = mIoU19 * 19 / 16.
+
+The results for Cityscapes→ACDC and Cityscapes→DarkZurich are reported on
+the test split of the target dataset. To generate the predictions for the test
+set, please run:
+
+```shell
+python -m tools.test path/to/config_file path/to/checkpoint_file --test-set --format-only --eval-option imgfile_prefix=labelTrainIds to_label_id=False
+```
+
+The predictions can be submitted to the public evaluation server of the
+respective dataset to obtain the test score.
+
+## Results on CS->acdc night
 
 ![Comparasion](resources/comparison.png)
+![Comparasion_table](resources/comparison_table.png)
+
+
