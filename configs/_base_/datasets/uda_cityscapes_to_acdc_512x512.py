@@ -1,11 +1,3 @@
-# ---------------------------------------------------------------
-# Copyright (c) 2021-2022 ETH Zurich, Lukas Hoyer. All rights reserved.
-# Licensed under the Apache License, Version 2.0
-# ---------------------------------------------------------------
-
-# dataset settings
-# 数据集处理改编为两个targets
-# FDA项目开启的数据源修改
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 crop_size = (512, 512)
@@ -55,28 +47,27 @@ data = dict(
     train=dict(
         type='UDADataset',
         source=dict(
-            type='CityscapesDataset',
+            type='CityscapesDataset',         # type accords to mmseg class ACDCDataset(CityscapesDataset)
             data_root='data/cityscapes/',
-            img_dir='leftImg8bit/train', #改
+            img_dir='leftImg8bit/train', 
             ann_dir='gtFine/train',
             pipeline=cityscapes_train_pipeline),
-        # type 对应的是 mmseg里的class ACDCDataset(CityscapesDataset)
+
         target_night=dict(
             type='ACDCDataset_night',
             data_root='data/acdc/',
-            img_dir='rgb_anon/night/train',#autodl-tmp/DAFormer/data/acdc/rgb_anon/night/train/GOPR0351
-            ann_dir='gt/night/train',#autodl-tmp/DAFormer/data/acdc/gt/night/train/GOPR0351
+            img_dir='rgb_anon/night/train',
+            ann_dir='gt/night/train',
             pipeline=acdc_train_pipeline),
         target_day=dict(
             type='ACDCDataset_day',
             data_root='data/acdc/',
-            img_dir='rgb_anon/night/train_ref',#autodl-tmp/DAFormer/data/acdc/rgb_anon/night/train_ref/GOPR0351
-            ann_dir='gt/night/train',#autodl-tmp/DAFormer/data/acdc/gt/night/train/GOPR0351
+            img_dir='rgb_anon/night/train_ref',
+            ann_dir='gt/night/train',
             pipeline=acdc_train_pipeline)
     
     
     ),
-    
     val=dict(
         type='ACDCDataset_night',
         data_root='data/acdc/',
@@ -89,34 +80,4 @@ data = dict(
         img_dir='rgb_anon/night/val',
         ann_dir='gt/night/val',
         pipeline=test_pipeline))
-'''
-昨天晚上版本
-     val=dict(
-        type='ACDCDataset_day',
-        data_root='data/acdc/',
-        img_dir='rgb_anon/night/train_FDA2/GOPR0351',
-        ann_dir='gt/night/train/GOPR0351',
-        pipeline=test_pipeline),
-    test=dict(
-        type='ACDCDataset_day',
-        data_root='data/acdc/',
-        img_dir='rgb_anon/night/train_FDA2/GOPR0351',
-        ann_dir='gt/night/train/GOPR0351',
-        pipeline=test_pipeline))
-'''   
-'''
-
-    val=dict(
-        type='ACDCDataset_day',
-        data_root='data/acdc/',
-        img_dir='rgb_anon/val',
-        ann_dir='gt/val',
-        pipeline=test_pipeline),
-    test=dict(
-        type='ACDCDataset',
-        data_root='data/acdc/',
-        img_dir='rgb_anon/val',
-        ann_dir='gt/val',
-        pipeline=test_pipeline))
-'''    
 
