@@ -51,16 +51,7 @@ train IDs and to generate the class index for RCS:
 python tools/convert_datasets/cityscapes.py data/cityscapes --nproc 8
 ```
 
-## Demo
 
-Already as this point, the provided DTBS model can be applied to a demo image:
-
-```shell
-python -m demo.image_demo demo/demo.png work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/211108_1622_gta2cs_daformer_s0_7f24c.json work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/latest.pth
-```
-
-When judging the predictions, please keep in mind that DTBS had no access
-to real-world labels during the training.
 
 ## Training
 
@@ -72,6 +63,16 @@ python run_experiments.py --config configs/DTBS/gta2cs_uda_warm_fdthings_rcs_cro
 
 More experiments in our paper (e.g. network architecture comparison,
 component ablations, ...) are coming soon
+
+## Demo and Test
+Already as this point, the provided DTBS pretrained model in the checkpoint below which can be applied to a demo image:
+
+```shell
+python -m demo.image_demo demo/demo.png work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/211108_1622_gta2cs_daformer_s0_7f24c.json work_dirs/211108_1622_gta2cs_daformer_s0_7f24c/latest.pth
+```
+
+When judging the predictions, please keep in mind that DTBS had no access
+to real-world labels during the training.
 
 ## Checkpoints
 
