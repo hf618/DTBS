@@ -12,7 +12,7 @@
 
 ## Environment
 
-For this project, we used python 3.8.5. We recommend setting up a new virtual
+For this project, we used python 3.8. We recommend setting up a new virtual
 environment:
 
 ```shell
@@ -27,7 +27,7 @@ pip install -r requirements.txt -f https://download.pytorch.org/whl/torch_stable
 pip install mmcv-full==1.3.7  # requires the other packages to be installed first
 ```
 
-All experiments were executed on a NVIDIA RTX 3090 Ti.
+All experiments were executed on a NVIDIA RTX 3090.
 
 ## Datasets
 
