@@ -16,8 +16,8 @@ For this project, we used python 3.8.5. We recommend setting up a new virtual
 environment:
 
 ```shell
-python -m venv ~/venv/daformer
-source ~/venv/daformer/bin/activate
+python -m venv ~/venv/DTBS
+source ~/venv/DTBS/bin/activate
 ```
 
 In that environment, the requirements can be installed with:
