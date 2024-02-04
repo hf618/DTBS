@@ -459,7 +459,7 @@ class DACS(UDADecorator):
         # T-S feedback
         self._update_ema_TSF(self.local_iter,0.8)
         # T-S feedback(E)
-        self._update_ema_TSF_E(self.local_iter, en_loss1, en_loss2)
+        # self._update_ema_TSF_E(self.local_iter, en_loss1, en_loss2)
 
 
         if self.local_iter % self.debug_img_interval == 0:
