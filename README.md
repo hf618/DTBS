@@ -60,7 +60,7 @@ A training job of Cityscapes to ACDC night can be launched using:
 ```shell
 python run_experiments.py --config configs/DTBS/gta2cs_uda_warm_fdthings_rcs_croppl_a999_DTBS.py
 ```
-
+Note download the MiT ImageNet weights (b3-b5) provided by SegFormer from [OneDrive](https://connecthkuhk-my.sharepoint.com/personal/xieenze_connect_hku_hk/_layouts/15/onedrive.aspx?id=%2Fpersonal%2Fxieenze%5Fconnect%5Fhku%5Fhk%2FDocuments%2Fsegformer%2Fpretrained%5Fmodels&ga=1) and put them in the folder `pretrained/`.
 More experiments in our paper (e.g. network architecture comparison,
 component ablations, ...) are coming soon
 
