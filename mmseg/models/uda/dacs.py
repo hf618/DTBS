@@ -395,8 +395,6 @@ class DACS(UDADecorator):
         log_vars.update(mix_log_vars1)
         mix_loss1.backward()
 
-        if self.local_iter > 0:
-            self._update_ema2(self.local_iter)
 
         # for night
         ema_logits2 = self.get_ema_model2().encode_decode(
