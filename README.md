@@ -107,12 +107,9 @@ Place them in the following positions respectively:`DTBS/work_dirs/acdc/` and  `
 ## Citation
 
 ```
-@article{huang2023dtbs,
+@article{huanga2023dtbs,
   title={DTBS: Dual-Teacher Bi-Directional Self-Training for Domain Adaptation in Nighttime Semantic Segmentation},
-  author={Huang, Fanding and Yao, Zihao and Zhou, Wenhui},
-  journal={Frontiers in Artificial Intelligence and Applications},
-  volume={372},
-  pages={1084},
+  author={Huanga, Fanding and Yaob, Zihao and Zhoua, Wenhui},
   year={2023}
 }
 ```
