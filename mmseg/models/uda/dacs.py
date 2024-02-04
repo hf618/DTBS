@@ -1,4 +1,3 @@
-
 import math
 import os
 import random
@@ -15,24 +14,24 @@ from mmseg.core import add_prefix
 from mmseg.models import UDA, build_segmentor
 from mmseg.models.uda.uda_decorator import UDADecorator, get_module
 from mmseg.models.utils.dacs_transforms import (denorm, get_class_masks,
-                                                get_mean_std, strong_transform,color_jitter,gaussian_blur)
+                                                get_mean_std, strong_transform, color_jitter, gaussian_blur)
 from mmseg.models.utils.visualization import subplotimg
 from mmseg.utils.utils import downscale_label_ratio
 
 
-def _params_equal(ema_model1,ema_model2, model): #ema_model两个
+def _params_equal(ema_model1, ema_model2, model):  # ema_model两个
     for ema_param, param in zip(ema_model1.named_parameters(),
                                 model.named_parameters()):
         if not torch.equal(ema_param[1].data, param[1].data):
             # print("Difference in", ema_param[0])
             return False
-        
+
     for ema_param, param in zip(ema_model2.named_parameters(),
                                 model.named_parameters()):
         if not torch.equal(ema_param[1].data, param[1].data):
             # print("Difference in", ema_param[0])
             return False
-        
+
     return True
 
 
@@ -47,39 +46,15 @@ def calc_grad_magnitude(grads, norm_type=2.0):
     return norm
 
 
-def cutmix(batch, alpha):
-    data, target = batch
-   # print(data.shape, target.shape)
-    indices = torch.flip(torch.arange(data.size(0)),[0])
-
-    #indices = torch.randperm(data.size(0))
-    #print(indices)
-    shuffled_data = data[indices]
-    shuffled_target = target[indices]
-    #print(shuffled_data.shape, shuffled_target.shape)
-
-    lam = np.random.beta(alpha, alpha)
-    #print(lam)
-    image_h, image_w = data.shape[2:]
-    #print(image_h,image_w)
-    cx = np.random.uniform(0, image_w)
-    cy = np.random.uniform(0, image_h)
-    #print("cx",cx,"cy",cy)
-    w = image_w * np.sqrt(1 - lam)
-    h = image_h * np.sqrt(1 - lam)
-    #print("w",w,"h",h)
-    x0 = int(np.round(max(cx - w / 2, 0)))
-    x1 = int(np.round(min(cx + w / 2, image_w)))
-    y0 = int(np.round(max(cy - h / 2, 0)))
-    y1 = int(np.round(min(cy + h / 2, image_h)))
-    #print("x0",x0,'x1',x1,'y0',y0,'y1',y1)
-
-    data[:, :, y0:y1, x0:x1] = shuffled_data[:, :, y0:y1, x0:x1]
-    target[:, y0:y1, x0:x1] = shuffled_target[:, y0:y1, x0:x1]
-    #targets = (targets, shuffled_targets, lam)
-    target = target.reshape(target.size(0),-1,target.size(1),target.size(2))
-    return data, target
-
+def entropy_loss(v):
+    """
+        Entropy loss for probabilistic prediction vectors
+        input: batch_size x channels x h x w
+        output: batch_size x 1 x h x w
+    """
+    assert v.dim() == 4
+    n, c, h, w = v.size()
+    return -torch.sum(torch.mul(v, torch.log2(v + 1e-30))) / (n * h * w * np.log2(c))
 
 @UDA.register_module()
 class DACS(UDADecorator):
@@ -110,7 +85,7 @@ class DACS(UDADecorator):
         self.class_probs = {}
         ema_cfg1 = deepcopy(cfg['model'])  ####改
         self.ema_model1 = build_segmentor(ema_cfg1)
-        
+
         ema_cfg2 = deepcopy(cfg['model'])  ####增加ema2
         self.ema_model2 = build_segmentor(ema_cfg2)
 
@@ -121,43 +96,39 @@ class DACS(UDADecorator):
 
     def get_ema_model1(self):
         return get_module(self.ema_model1)
-    
-    def get_ema_model2(self):    #增加
+
+    def get_ema_model2(self):  # 增加
         return get_module(self.ema_model2)
 
     def get_imnet_model(self):
         return get_module(self.imnet_model)
 
     def _init_ema_weights(self):
+        # for ema_model2
         for param in self.get_ema_model1().parameters():
             param.detach_()
-            #增加ema_model2
+        # for ema_model2
         for param in self.get_ema_model2().parameters():
             param.detach_()
-            
-            
+
         mp = list(self.get_model().parameters())
         mcp1 = list(self.get_ema_model1().parameters())
-        
-        
+
         mcp2 = list(self.get_ema_model2().parameters())
         for i in range(0, len(mp)):
             if not mcp1[i].data.shape:  # scalar tensor
                 mcp1[i].data = mp[i].data.clone()
             else:
                 mcp1[i].data[:] = mp[i].data[:].clone()
-                
 
             if not mcp2[i].data.shape:  # scalar tensor
                 mcp2[i].data = mp[i].data.clone()
             else:
                 mcp2[i].data[:] = mp[i].data[:].clone()
-                
-                
-            
 
-    def _update_ema(self, iter): 
+    def _update_ema(self, iter):
         alpha_teacher = min(1 - 1 / (iter + 1), self.alpha)
+        # for ema1
         for ema_param, param in zip(self.get_ema_model1().parameters(),
                                     self.get_model().parameters()):
             if not param.data.shape:  # scalar tensor
@@ -168,8 +139,8 @@ class DACS(UDADecorator):
                 ema_param.data[:] = \
                     alpha_teacher * ema_param[:].data[:] + \
                     (1 - alpha_teacher) * param[:].data[:]
-                
-        # 对ema2的操作
+
+        # for ema2
         for ema_param, param in zip(self.get_ema_model2().parameters(),
                                     self.get_model().parameters()):
             if not param.data.shape:  # scalar tensor
@@ -180,20 +151,38 @@ class DACS(UDADecorator):
                 ema_param.data[:] = \
                     alpha_teacher * ema_param[:].data[:] + \
                     (1 - alpha_teacher) * param[:].data[:]
-                
-                
-    def _update_ema2(self, iter):           
+
+    def _update_ema_TSF(self, iter,beta):
+        w2 = beta
+        w1 = 1-beta
         alpha_teacher2 = min(1 - 1 / (iter + 1), self.alpha)
-        for ema_param, param in zip(self.get_model().parameters(),
+        for ema_param, param1 ,param2 in zip(self.get_model().parameters(),
+                                    self.get_ema_model1().parameters(),
                                     self.get_ema_model2().parameters()):
-            if not param.data.shape:  # scalar tensor
+            if (not param1.data.shape) and (not param2.data.shape):  # scalar tensor
                 ema_param.data = \
                     alpha_teacher2 * ema_param.data + \
-                    (1 - alpha_teacher2) * param.data
+                    (1 - alpha_teacher2) * param1.data * w1+ (1 - alpha_teacher2) * param2.data * w2
             else:
                 ema_param.data[:] = \
                     alpha_teacher2 * ema_param[:].data[:] + \
-                    (1 - alpha_teacher2) * param[:].data[:]
+                    (1 - alpha_teacher2) * param1[:].data[:] * w1 + (1 - alpha_teacher2) * param2[:].data[:]* w2
+
+    def _update_ema_TSF_E(self, iter,en_loss1,en_loss2):
+        w1 = en_loss1/(en_loss2+en_loss1)
+        w2 = en_loss2/(en_loss2+en_loss1)
+        alpha_teacher2 = min(1 - 1 / (iter + 1), self.alpha)
+        for ema_param, param1 ,param2 in zip(self.get_model().parameters(),
+                                    self.get_ema_model1().parameters(),
+                                    self.get_ema_model2().parameters()):
+            if (not param1.data.shape) and (not param2.data.shape):  # scalar tensor
+                ema_param.data = \
+                    alpha_teacher2 * ema_param.data + \
+                    (1 - alpha_teacher2) * param1.data * w1+ (1 - alpha_teacher2) * param2.data * w2
+            else:
+                ema_param.data[:] = \
+                    alpha_teacher2 * ema_param[:].data[:] + \
+                    (1 - alpha_teacher2) * param1[:].data[:] * w1 + (1 - alpha_teacher2) * param2[:].data[:]* w2
 
     def train_step(self, data_batch, optimizer, **kwargs):
         """The iteration step during training.
@@ -270,7 +259,7 @@ class DACS(UDADecorator):
         return feat_loss, feat_log
 
     def forward_train(self, img, img_metas, gt_semantic_seg, target_day_img,
-                      target_day_img_metas,target_night_img,target_night_img_metas):
+                      target_day_img_metas, target_night_img, target_night_img_metas):
         """Forward function for training.
 
         Args:
@@ -342,97 +331,112 @@ class DACS(UDADecorator):
                 mmcv.print_log(f'Fdist Grad.: {grad_mag}', 'mmseg')
 
         # Generate pseudo-label
-
         for m in self.get_ema_model1().modules():
             if isinstance(m, _DropoutNd):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
-                # ema2
+
         for m in self.get_ema_model2().modules():
             if isinstance(m, _DropoutNd):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
-                
-        # ema2
+
         ema_logits1 = self.get_ema_model1().encode_decode(
             target_day_img, target_day_img_metas)
-        ema_logits2 = self.get_ema_model2().encode_decode(
-            target_night_img, target_night_img_metas)
 
         ema_softmax1 = torch.softmax(ema_logits1.detach(), dim=1)
+        en_loss1 = entropy_loss(ema_softmax1)
+
         pseudo_prob1, pseudo_label1 = torch.max(ema_softmax1, dim=1)
         ps_large_p1 = pseudo_prob1.ge(self.pseudo_threshold).long() == 1
         ps_size1 = np.size(np.array(pseudo_label1.cpu()))
         pseudo_weight1 = torch.sum(ps_large_p1).item() / ps_size1
         pseudo_weight1 = pseudo_weight1 * torch.ones(
             pseudo_prob1.shape, device=dev)
-        # ema2
-        ema_softmax2 = torch.softmax(ema_logits2.detach(), dim=1)
-        pseudo_prob2, pseudo_label2 = torch.max(ema_softmax2, dim=1)
-        ps_large_p2 = pseudo_prob2.ge(self.pseudo_threshold).long() == 1
-        ps_size2 = np.size(np.array(pseudo_label2.cpu()))
-        pseudo_weight2 = torch.sum(ps_large_p2).item() / ps_size2
-        pseudo_weight2 = pseudo_weight2 * torch.ones(
-            pseudo_prob2.shape, device=dev)
-        
 
         if self.psweight_ignore_top > 0:
             # Don't trust pseudo-labels in regions with potential
             # rectification artifacts. This can lead to a pseudo-label
             # drift from sky towards building or traffic light.
             pseudo_weight1[:, :self.psweight_ignore_top, :] = 0
-            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0
-            
-        if self.psweight_ignore_bottom > 0:
-            
-        
-            pseudo_weight1[:, -self.psweight_ignore_bottom:, :] = 0
-            pseudo_weight2[:, -self.psweight_ignore_bottom:, :] = 0
-            
-        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev)  
-        gt_pixel_weight2 = torch.ones((pseudo_weight2.shape), device=dev)
 
-        # Apply DACS mixing
+        if self.psweight_ignore_bottom > 0:
+            pseudo_weight1[:, -self.psweight_ignore_bottom:, :] = 0
+
+        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev)  # 复制版本
+
+        # Apply mixing
         mixed_img1, mixed_lbl1 = [None] * batch_size, [None] * batch_size
-        mixed_img2, mixed_lbl2 = [None] * batch_size, [None] * batch_size
         mix_masks = get_class_masks(gt_semantic_seg)
-        #ema 1
-        
-       # print('img',img[0].shape)
-       # print('target_day_img[0]',target_day_img[0].shape)
-       # print('gt_semantic_seg[i][0]',gt_semantic_seg[0][0].shape)
-        
-        #print('pseudo_label1[0]',pseudo_label1[0].shape)
-        
+
         for i in range(batch_size):
             strong_parameters['mix'] = mix_masks[i]
-            
+
             mixed_img1[i], mixed_lbl1[i] = strong_transform(
                 strong_parameters,
-                data=torch.stack((img[i], target_day_img[i])), #这里代表黄线
+                data=torch.stack((img[i], target_day_img[i])),  # 这里代表黄线
                 target=torch.stack((gt_semantic_seg[i][0], pseudo_label1[i])))
-            
-            
+
             _, pseudo_weight1[i] = strong_transform(
                 strong_parameters,
                 target=torch.stack((gt_pixel_weight1[i], pseudo_weight1[i])))
-            
-       # print('mixed_img1',mixed_img1.shape)
-        
         mixed_img1 = torch.cat(mixed_img1)
         mixed_lbl1 = torch.cat(mixed_lbl1)
-        
-         #ema 2
+
+        # Train on mixed images
+
+        mix_losses1 = self.get_model().forward_train(
+            mixed_img1, img_metas, mixed_lbl1, pseudo_weight1, return_feat=True)
+        mix_losses1.pop('features')
+        mix_losses1 = add_prefix(mix_losses1, 'mix1')  # mix day
+        mix_loss1, mix_log_vars1 = self._parse_losses(mix_losses1)
+        log_vars.update(mix_log_vars1)
+        mix_loss1.backward()
+
+        if self.local_iter > 0:
+            self._update_ema2(self.local_iter)
+
+        # for night
+        ema_logits2 = self.get_ema_model2().encode_decode(
+            target_night_img, target_night_img_metas)
+
+
+        ema_softmax2 = torch.softmax(ema_logits2.detach(), dim=1)
+        en_loss2 = entropy_loss(ema_softmax2)
+
+        pseudo_prob2, pseudo_label2 = torch.max(ema_softmax2, dim=1)
+        ps_large_p2 = pseudo_prob2.ge(self.pseudo_threshold).long() == 1
+        ps_size2 = np.size(np.array(pseudo_label2.cpu()))
+        pseudo_weight2 = torch.sum(ps_large_p2).item() / ps_size2
+        pseudo_weight2 = pseudo_weight2 * torch.ones(
+            pseudo_prob2.shape, device=dev)
+
+        if self.psweight_ignore_top > 0:
+            # Don't trust pseudo-labels in regions with potential
+            # rectification artifacts. This can lead to a pseudo-label
+            # drift from sky towards building or traffic light.
+            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0  # 复制版本
+
+        if self.psweight_ignore_bottom > 0:
+            pseudo_weight2[:, -self.psweight_ignore_bottom:, :] = 0
+
+        gt_pixel_weight2 = torch.ones((pseudo_weight2.shape), device=dev)
+
+        # Apply mixing
+
+        mixed_img2, mixed_lbl2 = [None] * batch_size, [None] * batch_size
+        # mix_masks = get_class_masks(gt_semantic_seg)
+
+
         for i in range(batch_size):
             strong_parameters['mix'] = mix_masks[i]
 
             mixed_img2[i], mixed_lbl2[i] = strong_transform(
                 strong_parameters,
-                data=torch.stack((img[i], target_night_img[i])), #这里代表蓝线
+                data=torch.stack((img[i], target_night_img[i])),
                 target=torch.stack((gt_semantic_seg[i][0], pseudo_label2[i])))
-
 
             _, pseudo_weight2[i] = strong_transform(
                 strong_parameters,
@@ -441,145 +445,37 @@ class DACS(UDADecorator):
         mixed_lbl2 = torch.cat(mixed_lbl2)
 
         # Train on mixed images
-        # ema 1
-        #print('mixed_img1',mixed_img1.shape)
-        #print('mixed_lbl1',mixed_lbl1.shape)
-        mix_losses1 = self.get_model().forward_train(
-            mixed_img1, img_metas, mixed_lbl1, pseudo_weight1, return_feat=True)
-        mix_losses1.pop('features')
-        mix_losses1 = add_prefix(mix_losses1, 'mix1')
-        mix_loss1, mix_log_vars1 = self._parse_losses(mix_losses1)
-        log_vars.update(mix_log_vars1)
-        mix_loss1.backward()
-        # ema 2
+
+
         mix_losses2 = self.get_model().forward_train(
             mixed_img2, img_metas, mixed_lbl2, pseudo_weight2, return_feat=True)
         mix_losses2.pop('features')
-        mix_losses2 = add_prefix(mix_losses2, 'mix2')
+        mix_losses2 = add_prefix(mix_losses2, 'mix2')  # mix night
         mix_loss2, mix_log_vars2 = self._parse_losses(mix_losses2)
         log_vars.update(mix_log_vars2)
         mix_loss2.backward()
-        
-        # 老师教学生
-        
-        self._update_ema2(self.local_iter)
 
-      
 
-        
-        #print('pseudo_label1[0]',pseudo_label1[0].shape)
-        
-        for i in range(batch_size):
-            
-            #strong_parameters['mix'] = mix_masks[i]
-            
-           # mixed_img1[i], mixed_lbl1[i] = strong_transform(
-            #    strong_parameters,
-           #     data=torch.stack((img[i], target_day_img[i])), #这里代表黄线
-            #    target=torch.stack((gt_semantic_seg[i][0], pseudo_label1[i])))
-            
-            
-         #   _, pseudo_weight1[i] = strong_transform(
-          #      strong_parameters,
-         #       target=torch.stack((gt_pixel_weight1[i], pseudo_weight1[i])))
-            
-            temp1, temp2 = cutmix((torch.stack((img[i], target_day_img[i])),
-                        torch.stack((gt_semantic_seg[i][0], pseudo_label1[i]))),alpha)#输入的data维度：2*通道*w*h
-            
-            temp1, temp2 = color_jitter(
-                        color_jitter=strong_parameters['color_jitter'],
-                        s=strong_parameters['color_jitter_s'],
-                        p=strong_parameters['color_jitter_p'],
-                        mean=strong_parameters['mean'],
-                        std=strong_parameters['std'],
-                        data=temp1,
-                        target=temp2)
-       
-    
-            temp1, temp2 = gaussian_blur(blur=strong_parameters['blur'], data=temp1, target=temp2)
-            
-            temp3, temp4 = cutmix((torch.stack((img[i], target_night_img[i])),
-                        torch.stack((gt_semantic_seg[i][0], pseudo_label2[i]))),alpha)#输入的data维度：2*通道*w*h
-            
-            temp3, temp4 = color_jitter(
-                        color_jitter=strong_parameters['color_jitter'],
-                        s=strong_parameters['color_jitter_s'],
-                        p=strong_parameters['color_jitter_p'],
-                        mean=strong_parameters['mean'],
-                        std=strong_parameters['std'],
-                        data=temp3,
-                        target=temp4)
-       
-    
-            temp3, temp4 = gaussian_blur(blur=strong_parameters['blur'], data=temp3, target=temp4)
-            
-            mixed_img_cut1[i] = temp1[0].unsqueeze(0)
-            mixed_lbl_cut1[i] = temp2[0].unsqueeze(0)
-            mixed_img_cut2[i] = temp3[0].unsqueeze(0)
-            mixed_lbl_cut2[i] = temp4[0].unsqueeze(0)
-            
-        #mixed_img_cut1 = mixed_img_cut1.unsqueeze(0)
-       # mixed_lbl_cut1 = mixed_lbl_cut1.unsqueeze(0)
-        
-       # mixed_img_cut2 = mixed_img_cut2.unsqueeze(0)
-       # mixed_lbl_cut2 = mixed_lbl_cut2.unsqueeze(0)
-        
-       # print('mixed_img_cut1[i]',mixed_img_cut1[0].shape)
-       # print('mixed_lbl_cut1[i]',mixed_lbl_cut1[0].shape)
-       # print('gt_semantic_seg[i][0]',gt_semantic_seg[0][0].shape)
-       # print('mixed_img_cut1',mixed_img_cut1.shape)
-       # print('mixed_lbl_cut1',mixed_lbl_cut1.shape)
-        
-        mixed_img_cut1 = torch.cat(mixed_img_cut1)
-        mixed_lbl_cut1 = torch.cat(mixed_lbl_cut1)
-        
+        # T-S feedback
+        self._update_ema_TSF(self.local_iter,0.8)
+        # T-S feedback(E)
+        self._update_ema_TSF_E(self.local_iter, en_loss1, en_loss2)
 
-        mixed_img_cut2 = torch.cat(mixed_img_cut2)
-        mixed_lbl_cut2 = torch.cat(mixed_lbl_cut2)
-        
-        #print('mixed_img_cut1',mixed_img_cut1.shape)
-        #print('mixed_lbl_cut1',mixed_lbl_cut1.shape)
-        # Train on mixed images
-        # ema 1
-        mix_losses_cut1 = self.get_model().forward_train(
-            mixed_img_cut1, img_metas, mixed_lbl_cut1, return_feat=True)
-        mix_losses_cut1.pop('features')
-        mix_losses_cut1 = add_prefix(mix_losses_cut1, 'mix_cut1_')
-        mix_loss_cut1, mix_log_vars_cut1 = self._parse_losses(mix_losses_cut1)
-        log_vars.update(mix_log_vars_cut1)
-        mix_loss_cut1.backward()
-        # ema 2
-        mix_losses_cut2 = self.get_model().forward_train(
-            mixed_img_cut2, img_metas, mixed_lbl_cut2, return_feat=True)
-        mix_losses_cut2.pop('features')
-        mix_losses_cut2 = add_prefix(mix_losses_cut2, 'mix_cut2_')
-        mix_loss_cut2, mix_log_vars_cut2 = self._parse_losses(mix_losses_cut2)
-        log_vars.update(mix_log_vars_cut2)
-        mix_loss_cut2.backward()
 
-        '''
         if self.local_iter % self.debug_img_interval == 0:
             out_dir = os.path.join(self.train_cfg['work_dir'],
                                    'class_mix_debug')
             os.makedirs(out_dir, exist_ok=True)
             vis_img = torch.clamp(denorm(img, means, stds), 0, 1)
-            # ema 1
+
             vis_trg_img1 = torch.clamp(denorm(target_day_img, means, stds), 0, 1)
             vis_mixed_img1 = torch.clamp(denorm(mixed_img1, means, stds), 0, 1)
-            
-            #vis_mixed_img_cut1 = torch.clamp(denorm(mixed_img_cut1, means, stds), 0, 1)
-            
-            # ema 2
+
+
             vis_trg_img2 = torch.clamp(denorm(target_night_img, means, stds), 0, 1)
             vis_mixed_img2 = torch.clamp(denorm(mixed_img2, means, stds), 0, 1)
-            
-            #vis_mixed_img_cut2 = torch.clamp(denorm(mixed_img_cut2, means, stds), 0, 1)
-            
-            
-            
-           # 纯 night 及其 预测分割结果
 
-            
+
             for j in range(batch_size):
                 rows, cols = 2, 5
                 fig, axs = plt.subplots(
@@ -595,9 +491,8 @@ class DACS(UDADecorator):
                         'left': 0
                     },
                 )
-                #subplotimg(axs[0][5], vis_mixed_img_cut1[j], 'CutMix Image')
-                #subplotimg(axs[1][5], mixed_lbl_cut1[j], 'CutMix Label',cmap='cityscapes')
-                
+
+
                 subplotimg(axs[0][0], vis_img[j], 'Source Image')
                 subplotimg(axs[1][0], vis_trg_img1[j], 'Target Image')
                 subplotimg(
@@ -613,8 +508,7 @@ class DACS(UDADecorator):
                 subplotimg(axs[0][2], vis_mixed_img1[j], 'Mixed Image')
                 subplotimg(
                     axs[1][2], mix_masks[j][0], 'Domain Mask', cmap='gray')
-                # subplotimg(axs[0][3], pred_u_s[j], "Seg Pred",
-                #            cmap="cityscapes")
+
                 subplotimg(
                     axs[1][3], mixed_lbl1[j], 'Seg Targ', cmap='cityscapes')
                 subplotimg(
@@ -637,8 +531,8 @@ class DACS(UDADecorator):
                     os.path.join(out_dir,
                                  f'{(self.local_iter + 1):06d}_{j}_day.png'))
                 plt.close()
-                
-       
+
+
                 fig, axs = plt.subplots(
                     rows,
                     cols,
@@ -652,9 +546,8 @@ class DACS(UDADecorator):
                         'left': 0
                     },
                 )
-                #subplotimg(axs[0][5], vis_mixed_img_cut2[j], 'CutMix Image')
-                #subplotimg(axs[1][5], mixed_lbl_cut2[j], 'CutMix Label',cmap='cityscapes')
-                
+
+
                 subplotimg(axs[0][0], vis_img[j], 'Source Image')
                 subplotimg(axs[1][0], vis_trg_img2[j], 'Target Image')
                 subplotimg(
@@ -670,8 +563,7 @@ class DACS(UDADecorator):
                 subplotimg(axs[0][2], vis_mixed_img2[j], 'Mixed Image')
                 subplotimg(
                     axs[1][2], mix_masks[j][0], 'Domain Mask', cmap='gray')
-                # subplotimg(axs[0][3], pred_u_s[j], "Seg Pred",
-                #            cmap="cityscapes")
+
                 subplotimg(
                     axs[1][3], mixed_lbl2[j], 'Seg Targ', cmap='cityscapes')
                 subplotimg(
@@ -694,10 +586,10 @@ class DACS(UDADecorator):
                     os.path.join(out_dir,
                                  f'{(self.local_iter + 1):06d}_{j}_night.png'))
                 plt.close()
-                
-                
 
-                
+
+
+
         self.local_iter += 1
 
         return log_vars
