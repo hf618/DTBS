@@ -2,7 +2,7 @@
 # Modifications:
 # - Config and checkpoint update
 # - Saving instead of showing prediction
-
+# for producing results of a demo
 import os
 from argparse import ArgumentParser
 
