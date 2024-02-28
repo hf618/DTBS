@@ -336,105 +336,89 @@ class DACS(UDADecorator):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
-
+                
         for m in self.get_ema_model2().modules():
             if isinstance(m, _DropoutNd):
                 m.training = False
             if isinstance(m, DropPath):
                 m.training = False
-
+                
+       
         ema_logits1 = self.get_ema_model1().encode_decode(
             target_day_img, target_day_img_metas)
+        ema_logits2 = self.get_ema_model2().encode_decode(
+            target_night_img, target_night_img_metas)
 
         ema_softmax1 = torch.softmax(ema_logits1.detach(), dim=1)
         en_loss1 = entropy_loss(ema_softmax1)
-
+        
         pseudo_prob1, pseudo_label1 = torch.max(ema_softmax1, dim=1)
         ps_large_p1 = pseudo_prob1.ge(self.pseudo_threshold).long() == 1
         ps_size1 = np.size(np.array(pseudo_label1.cpu()))
         pseudo_weight1 = torch.sum(ps_large_p1).item() / ps_size1
         pseudo_weight1 = pseudo_weight1 * torch.ones(
             pseudo_prob1.shape, device=dev)
-
-        if self.psweight_ignore_top > 0:
-            # Don't trust pseudo-labels in regions with potential
-            # rectification artifacts. This can lead to a pseudo-label
-            # drift from sky towards building or traffic light.
-            pseudo_weight1[:, :self.psweight_ignore_top, :] = 0
-
-        if self.psweight_ignore_bottom > 0:
-            pseudo_weight1[:, -self.psweight_ignore_bottom:, :] = 0
-
-        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev)  # 复制版本
-
-        # Apply mixing
-        mixed_img1, mixed_lbl1 = [None] * batch_size, [None] * batch_size
-        mix_masks = get_class_masks(gt_semantic_seg)
-
-        for i in range(batch_size):
-            strong_parameters['mix'] = mix_masks[i]
-
-            mixed_img1[i], mixed_lbl1[i] = strong_transform(
-                strong_parameters,
-                data=torch.stack((img[i], target_day_img[i])),  # 这里代表黄线
-                target=torch.stack((gt_semantic_seg[i][0], pseudo_label1[i])))
-
-            _, pseudo_weight1[i] = strong_transform(
-                strong_parameters,
-                target=torch.stack((gt_pixel_weight1[i], pseudo_weight1[i])))
-        mixed_img1 = torch.cat(mixed_img1)
-        mixed_lbl1 = torch.cat(mixed_lbl1)
-
-        # Train on mixed images
-
-        mix_losses1 = self.get_model().forward_train(
-            mixed_img1, img_metas, mixed_lbl1, pseudo_weight1, return_feat=True)
-        mix_losses1.pop('features')
-        mix_losses1 = add_prefix(mix_losses1, 'mix1')  # mix day
-        mix_loss1, mix_log_vars1 = self._parse_losses(mix_losses1)
-        log_vars.update(mix_log_vars1)
-        mix_loss1.backward()
-
-
-        # for night
-        ema_logits2 = self.get_ema_model2().encode_decode(
-            target_night_img, target_night_img_metas)
-
-
+        
         ema_softmax2 = torch.softmax(ema_logits2.detach(), dim=1)
         en_loss2 = entropy_loss(ema_softmax2)
-
+        
         pseudo_prob2, pseudo_label2 = torch.max(ema_softmax2, dim=1)
         ps_large_p2 = pseudo_prob2.ge(self.pseudo_threshold).long() == 1
         ps_size2 = np.size(np.array(pseudo_label2.cpu()))
         pseudo_weight2 = torch.sum(ps_large_p2).item() / ps_size2
         pseudo_weight2 = pseudo_weight2 * torch.ones(
             pseudo_prob2.shape, device=dev)
+        
 
         if self.psweight_ignore_top > 0:
             # Don't trust pseudo-labels in regions with potential
             # rectification artifacts. This can lead to a pseudo-label
             # drift from sky towards building or traffic light.
-            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0  # 复制版本
-
+            pseudo_weight1[:, :self.psweight_ignore_top, :] = 0
+            pseudo_weight2[:, :self.psweight_ignore_top, :] = 0
+            
         if self.psweight_ignore_bottom > 0:
+            
+        
+            pseudo_weight1[:, -self.psweight_ignore_bottom:, :] = 0
             pseudo_weight2[:, -self.psweight_ignore_bottom:, :] = 0
-
+            
+        gt_pixel_weight1 = torch.ones((pseudo_weight1.shape), device=dev)   
         gt_pixel_weight2 = torch.ones((pseudo_weight2.shape), device=dev)
 
-        # Apply mixing
-
+        # Apply DACS mixing
+        mixed_img1, mixed_lbl1 = [None] * batch_size, [None] * batch_size
         mixed_img2, mixed_lbl2 = [None] * batch_size, [None] * batch_size
-        # mix_masks = get_class_masks(gt_semantic_seg)
-
-
+        mix_masks = get_class_masks(gt_semantic_seg)
+        #ema 1
+        
+        for i in range(batch_size):
+            strong_parameters['mix'] = mix_masks[i]
+            
+            mixed_img1[i], mixed_lbl1[i] = strong_transform(
+                strong_parameters,
+                data=torch.stack((img[i], target_day_img[i])),
+                target=torch.stack((gt_semantic_seg[i][0], pseudo_label1[i])))
+            
+            
+            _, pseudo_weight1[i] = strong_transform(
+                strong_parameters,
+                target=torch.stack((gt_pixel_weight1[i], pseudo_weight1[i])))
+            
+       
+        
+        mixed_img1 = torch.cat(mixed_img1)
+        mixed_lbl1 = torch.cat(mixed_lbl1)
+        
+         #ema 2
         for i in range(batch_size):
             strong_parameters['mix'] = mix_masks[i]
 
             mixed_img2[i], mixed_lbl2[i] = strong_transform(
                 strong_parameters,
-                data=torch.stack((img[i], target_night_img[i])),
+                data=torch.stack((img[i], target_night_img[i])), 
                 target=torch.stack((gt_semantic_seg[i][0], pseudo_label2[i])))
+
 
             _, pseudo_weight2[i] = strong_transform(
                 strong_parameters,
@@ -443,19 +427,27 @@ class DACS(UDADecorator):
         mixed_lbl2 = torch.cat(mixed_lbl2)
 
         # Train on mixed images
-
-
+        # ema 1
+        #print('mixed_img1',mixed_img1.shape)
+        #print('mixed_lbl1',mixed_lbl1.shape)
+        mix_losses1 = self.get_model().forward_train(
+            mixed_img1, img_metas, mixed_lbl1, pseudo_weight1, return_feat=True)
+        mix_losses1.pop('features')
+        mix_losses1 = add_prefix(mix_losses1, 'mix1')
+        mix_loss1, mix_log_vars1 = self._parse_losses(mix_losses1)
+        log_vars.update(mix_log_vars1)
+        mix_loss1.backward()
+        # ema 2
         mix_losses2 = self.get_model().forward_train(
             mixed_img2, img_metas, mixed_lbl2, pseudo_weight2, return_feat=True)
         mix_losses2.pop('features')
-        mix_losses2 = add_prefix(mix_losses2, 'mix2')  # mix night
+        mix_losses2 = add_prefix(mix_losses2, 'mix2')
         mix_loss2, mix_log_vars2 = self._parse_losses(mix_losses2)
         log_vars.update(mix_log_vars2)
         mix_loss2.backward()
 
-
         # T-S feedback
-        self._update_ema_TSF(self.local_iter,0.8)
+        self._update_ema_TSF(self.local_iter,1)
         # T-S feedback(E)
         # self._update_ema_TSF_E(self.local_iter, en_loss1, en_loss2)
 
