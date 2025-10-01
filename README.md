@@ -109,9 +109,13 @@ Place them in the following positions respectively:`DTBS/work_dirs/acdc/` and  `
 ## Citation
 
 ```
-@article{huanga2023dtbs,
-  title={DTBS: Dual-Teacher Bi-Directional Self-Training for Domain Adaptation in Nighttime Semantic Segmentation},
-  author={Huanga, Fanding and Yaob, Zihao and Zhoua, Wenhui},
-  year={2023}
+@misc{huang2024dtbsdualteacherbidirectionalselftraining,
+      title={DTBS: Dual-Teacher Bi-directional Self-training for Domain Adaptation in Nighttime Semantic Segmentation}, 
+      author={Fanding Huang and Zihao Yao and Wenhui Zhou},
+      year={2024},
+      eprint={2401.01066},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2401.01066}, 
 }
 ```
